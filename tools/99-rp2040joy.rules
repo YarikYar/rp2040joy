@@ -1,0 +1,4 @@
+# rp2040joy: allow plugdev/users group to access HID device without root.
+# Install: sudo cp 99-rp2040joy.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4004", MODE="0660", GROUP="wheel", TAG+="uaccess"
+SUBSYSTEM=="usb",    ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4004", MODE="0660", GROUP="wheel", TAG+="uaccess"

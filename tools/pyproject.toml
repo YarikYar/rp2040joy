@@ -1,0 +1,8 @@
+[project]
+name = "rp2040joy-tools"
+version = "0.1.0"
+description = "HID diagnostics for rp2040joy"
+requires-python = ">=3.12"
+dependencies = [
+    "hidapi>=0.15.0",
+]
