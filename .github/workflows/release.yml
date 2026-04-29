@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  PICO_SDK_TAG: 2.1.1
+
+jobs:
+  firmware:
+    name: Build firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake build-essential \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+      - name: Cache pico-sdk
+        id: pico-sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/pico-sdk
+          key: pico-sdk-${{ env.PICO_SDK_TAG }}
+
+      - name: Fetch pico-sdk
+        if: steps.pico-sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$PICO_SDK_TAG" \
+            https://github.com/raspberrypi/pico-sdk.git "$RUNNER_TEMP/pico-sdk"
+          git -C "$RUNNER_TEMP/pico-sdk" submodule update --init --recursive --depth 1
+
+      - name: Build firmware
+        env:
+          PICO_SDK_PATH: ${{ runner.temp }}/pico-sdk
+        run: |
+          cmake -S firmware -B firmware/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DRP2040JOY_BUILD_ID="${GITHUB_REF_NAME}"
+          cmake --build firmware/build -j
+
+      - name: Stage release artifact
+        run: |
+          mkdir -p release
+          cp firmware/build/rp2040joy.uf2 "release/rp2040joy-${GITHUB_REF_NAME}.uf2"
+          cp firmware/build/rp2040joy.elf "release/rp2040joy-${GITHUB_REF_NAME}.elf"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: release/
+
+  app-linux:
+    name: Build Qt configurator (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake build-essential pkg-config \
+            qt6-base-dev qt6-base-dev-tools \
+            libhidapi-dev
+
+      - name: Build app
+        run: |
+          cmake -S app -B app/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build app/build -j
+
+      - name: Stage release artifact
+        run: |
+          mkdir -p release
+          cp app/build/rp2040joy_app "release/rp2040joy_app-${GITHUB_REF_NAME}-linux-x86_64"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-linux
+          path: release/
+
+  release:
+    name: Publish GitHub Release
+    needs: [firmware, app-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la release/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
