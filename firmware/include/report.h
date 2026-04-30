@@ -18,11 +18,13 @@
 #define JOY_HAT_UP_LEFT   7
 #define JOY_HAT_NEUTRAL   8
 
-typedef struct __attribute__((packed)) {
+#pragma pack(push, 1)
+typedef struct {
     int16_t  axis[JOY_AXIS_COUNT];   // -32768..32767, order: X Y Z Rx Ry Rz
     uint8_t  hat;                    // 0..7 direction, 8 neutral
     uint16_t buttons;                // bit N = button N
 } gamepad_report_t;
+#pragma pack(pop)
 
 void report_build(gamepad_report_t *r);
 

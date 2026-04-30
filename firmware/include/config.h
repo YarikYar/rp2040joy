@@ -28,7 +28,11 @@
 #define AXIS_FLAG_ENABLE  0x01
 #define AXIS_FLAG_INVERT  0x02
 
-typedef struct __attribute__((packed)) {
+// Wire-format structures: byte-aligned, no padding. Pragma is portable
+// across GCC and MSVC (the latter doesn't grok __attribute__((packed))).
+#pragma pack(push, 1)
+
+typedef struct {
     uint8_t  source;
     uint8_t  flags;
     uint16_t raw_min;       // ADC raw value at min travel
@@ -44,14 +48,14 @@ typedef struct __attribute__((packed)) {
 // chained 74HC165 shift register, not as a GPIO pin.
 #define BUTTON_FLAG_SHIFT_REG  0x04
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t gpio;     // 0xFF = unused; with BUTTON_FLAG_SHIFT_REG set: SR bit index
     uint8_t flags;
 } button_cfg_t;
 
 #define HAT_FLAG_ENABLE  0x01
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t gpio_up;
     uint8_t gpio_right;
     uint8_t gpio_down;
@@ -62,7 +66,7 @@ typedef struct __attribute__((packed)) {
 
 #define MUX_FLAG_ENABLE  0x01
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t adc_source;          // AXIS_SOURCE_ADC0..3 — which ADC reads the mux output
     uint8_t select_gpio[3];      // S0, S1, S2 (low → high bit). 0xFF = unused.
     uint8_t flags;
@@ -75,7 +79,7 @@ typedef struct __attribute__((packed)) {
 #define SR_FLAG_ENABLE  0x01
 #define SR_MAX_BITS     32
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t pin_data;    // QH from the last chip in the chain → RP2040 GPIO (input)
     uint8_t pin_clock;   // CP — clock pulse from RP2040 (output)
     uint8_t pin_latch;   // PL/SH — parallel load, active-low (output)
@@ -103,7 +107,7 @@ typedef struct __attribute__((packed)) {
 
 #define GEARBOX_BUTTON_NONE      0xFF
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t first;        // index of the first gear button (0..15)
     uint8_t count;        // 2..GEARBOX_MAX_GEARS gears
     uint8_t pulse_ms;     // pulse length 10..250 (used by PULSE/SEQUENTIAL)
@@ -113,7 +117,7 @@ typedef struct __attribute__((packed)) {
     uint8_t _reserved[2];
 } gearbox_cfg_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint16_t version;
     uint16_t poll_hz;                          // 100..1000
     axis_cfg_t   axes[JOY_AXIS_COUNT];
@@ -124,6 +128,8 @@ typedef struct __attribute__((packed)) {
     gearbox_cfg_t gearbox;
     uint32_t crc32;                            // computed over all preceding bytes
 } joy_config_t;
+
+#pragma pack(pop)
 
 void config_set_defaults(joy_config_t *c);
 uint32_t config_crc32(const joy_config_t *c);

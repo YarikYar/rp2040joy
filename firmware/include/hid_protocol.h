@@ -29,7 +29,8 @@
 // GET: device returns the requested chunk of the live in-RAM config.
 // SET: host writes a chunk into the in-RAM config (no flash commit).
 // Use CMD_SAVE_TO_FLASH to commit, CMD_RELOAD_FLASH to discard.
-typedef struct __attribute__((packed)) {
+#pragma pack(push, 1)
+typedef struct {
     uint8_t block_index;     // 0 .. HID_CONFIG_BLOCK_TOTAL - 1
     uint8_t block_total;     // == HID_CONFIG_BLOCK_TOTAL (sanity)
     uint8_t payload[HID_CONFIG_BLOCK_PAYLOAD];
@@ -46,14 +47,14 @@ enum {
     CMD_APPLY          = 6,   // re-init pins/ADC from current RAM config
 };
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t  command;
     uint8_t  _reserved[3];
     uint32_t arg;            // command-specific
 } hid_command_t;
 
 // --- STATUS -------------------------------------------------------------
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint16_t protocol_version;
     uint16_t config_version;
     uint16_t fw_version;          // major<<8 | minor
@@ -67,11 +68,12 @@ typedef struct __attribute__((packed)) {
 
 // --- RAW_INPUT ----------------------------------------------------------
 // Live raw values for the calibration UI. Buttons mirror the debounced state.
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint16_t axis_raw[JOY_AXIS_COUNT];   // ADC raw (0..4095) or 0 if unused
     uint16_t buttons;                    // bit per button
     uint8_t  hat;                        // same encoding as input report
     uint8_t  _reserved;
 } hid_raw_input_t;
+#pragma pack(pop)
 
 #endif
