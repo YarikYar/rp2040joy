@@ -108,14 +108,25 @@ jobs:
         shell: pwsh
         run: vcpkg install hidapi:x64-windows
 
-      - name: Build
+      - name: Diagnose vcpkg hidapi
+        shell: pwsh
+        run: |
+          $root = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows"
+          Write-Host "--- bin ---";    Get-ChildItem -Recurse "$root/bin"     -Filter hidapi* -ErrorAction SilentlyContinue
+          Write-Host "--- lib ---";    Get-ChildItem -Recurse "$root/lib"     -Filter hidapi* -ErrorAction SilentlyContinue
+          Write-Host "--- share ---";  Get-ChildItem -Recurse "$root/share/hidapi" -ErrorAction SilentlyContinue
+
+      - name: Configure
         shell: pwsh
         run: |
           cmake -S app -B app/build `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows `
             -DCMAKE_BUILD_TYPE=Release
-          cmake --build app/build --config Release -j
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build app/build --config Release --parallel --verbose
 
       - name: Stage and zip
         shell: pwsh

@@ -13,12 +13,19 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-# Prefer the CONFIG-mode package (vcpkg / Windows / Qt-bundled). On Linux the
-# distro ships a backend-suffixed pkg-config (hidapi-hidraw on most boxes,
-# hidapi-libusb on others) — fall back to that.
+# Find hidapi across packagings:
+#   * upstream CMake config (vcpkg / system) — target hidapi::hidapi
+#   * older vcpkg ports                       — unofficial::hidapi::hidapi
+#   * Linux distros split by backend          — pkg-config hidapi-hidraw / hidapi-libusb
 find_package(hidapi CONFIG QUIET)
-if(hidapi_FOUND)
+if(NOT TARGET hidapi::hidapi)
+    find_package(unofficial-hidapi CONFIG QUIET)
+endif()
+
+if(TARGET hidapi::hidapi)
     set(RP2040JOY_HIDAPI_TARGET hidapi::hidapi)
+elseif(TARGET unofficial::hidapi::hidapi)
+    set(RP2040JOY_HIDAPI_TARGET unofficial::hidapi::hidapi)
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi-hidraw)
@@ -27,6 +34,7 @@ else()
     endif()
     set(RP2040JOY_HIDAPI_TARGET PkgConfig::HIDAPI)
 endif()
+message(STATUS "rp2040joy: hidapi target = ${RP2040JOY_HIDAPI_TARGET}")
 
 add_executable(rp2040joy_app
     src/main.cpp
